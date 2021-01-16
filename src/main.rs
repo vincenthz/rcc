@@ -112,6 +112,7 @@ fn main() {
         };
     }
 
+    for _ in 0..3 {
     {
         use cryptoxide::{blake2b::Blake2b, digest::Digest};
         bench_hash!("cryptoxide::blake2b", Blake2b::new(64), |c, d| {
@@ -165,4 +166,6 @@ fn main() {
         );
     }
     */
+        println!("")
+    }
 }
