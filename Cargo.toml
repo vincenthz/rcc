@@ -13,11 +13,11 @@ edition = "2018"
 cryptoxide = "0.2"
 
 # rustcrypto
-blake2 = "0.8"
-sha2 = "0.8"
-digest = "0.8"
-poly1305 = "0.5"
-universal-hash = "0.3"
+blake2 = "0.9"
+sha2 = "0.9"
+digest = "0.9"
+poly1305 = "0.6"
+universal-hash = "0.4"
 
 [features]
 opt = [ "blake2/simd", "sha2/asm" ]

@@ -38,6 +38,8 @@ impl BenchData {
             .iter()
             .sum::<u64>()
             .checked_div(self.counters.len() as u64)
+            .expect("cannot div")
+            .checked_div(self.tries as u64)
             .expect("cannot div");
 
         let speed = self.datalen as u128 * 1_000_000_000 / average_dur.as_nanos();
@@ -119,7 +121,7 @@ fn main() {
 
     {
         use blake2::{Blake2b, Digest};
-        bench_hash!("blake2::blake2b", Blake2b::new(), |c, d| { c.input(d) });
+        bench_hash!("blake2::blake2b", Blake2b::new(), |c, d| { c.update(d) });
     }
 
     {
@@ -131,7 +133,7 @@ fn main() {
 
     {
         use blake2::{Blake2s, Digest};
-        bench_hash!("blake2::blake2s", Blake2s::new(), |c, d| { c.input(d) });
+        bench_hash!("blake2::blake2s", Blake2s::new(), |c, d| { c.update(d) });
     }
 
     {
@@ -141,7 +143,7 @@ fn main() {
 
     {
         use sha2::{Digest, Sha256};
-        bench_hash!("sha2::sha256", Sha256::new(), |c, d| { c.input(d) });
+        bench_hash!("sha2::sha256", Sha256::new(), |c, d| { c.update(d) });
     }
 
     {
@@ -151,14 +153,16 @@ fn main() {
             c.input(d)
         });
     }
+    /*
     {
         use poly1305::Poly1305;
-        use universal_hash::UniversalHash;
+        use universal_hash::NewUniversalHash;
         let key = [2u8; 32];
         bench_hash!(
             "poly1305::poly1305",
             Poly1305::new(key.as_ref().into()),
-            |c, d| { c.update(d) }
+            |c, d| { c.compute_unpadded(&d); }
         );
     }
+    */
 }
