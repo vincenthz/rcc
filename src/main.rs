@@ -121,6 +121,8 @@ fn main() {
     }
 
     for _ in 0..3 {
+
+    // ********* BLAKE2B *******
     {
         use cryptoxide::{blake2b::Blake2b, digest::Digest};
         bench_hash!("cryptoxide::blake2b", Blake2b::new(64), |c, d| {
@@ -131,8 +133,11 @@ fn main() {
     {
         use blake2::{Blake2b, Digest};
         bench_hash!("blake2::blake2b", Blake2b::new(), |c, d| { c.update(d) });
-    }
 
+    }
+    
+    // ********* BLAKE2S *******
+    
     {
         use cryptoxide::{blake2s::Blake2s, digest::Digest};
         bench_hash!("cryptoxide::blake2s", Blake2s::new(32), |c, d| {
@@ -145,6 +150,7 @@ fn main() {
         bench_hash!("blake2::blake2s", Blake2s::new(), |c, d| { c.update(d) });
     }
 
+    // ********* SHA256 *******
     {
         use cryptoxide::{digest::Digest, sha2::Sha256};
         bench_hash!("cryptoxide::sha256", Sha256::new(), |c, d| { c.input(d) });
@@ -154,6 +160,29 @@ fn main() {
         use sha2::{Digest, Sha256};
         bench_hash!("sha2::sha256", Sha256::new(), |c, d| { c.update(d) });
     }
+
+    {
+        use ring::digest;
+        bench_hash!("ring::sha256", digest::Context::new(&digest::SHA256), |c, d| { c.update(d) });
+    }
+    
+    // ********* SHA512 *******
+    {
+        use cryptoxide::{digest::Digest, sha2::Sha512};
+        bench_hash!("cryptoxide::sha512", Sha512::new(), |c, d| { c.input(d) });
+    }
+
+    {
+        use sha2::{Digest, Sha512};
+        bench_hash!("sha2::sha512", Sha512::new(), |c, d| { c.update(d) });
+    }
+
+    {
+        use ring::digest;
+        bench_hash!("ring::sha512", digest::Context::new(&digest::SHA512), |c, d| { c.update(d) });
+    }
+
+    // ********* POLY1305 *******
 
     {
         use cryptoxide::{mac::Mac, poly1305::Poly1305};

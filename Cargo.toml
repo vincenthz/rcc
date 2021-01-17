@@ -19,5 +19,8 @@ digest = "0.9"
 poly1305 = "0.6"
 universal-hash = "0.4"
 
+# ring
+ring = "0.16"
+
 [features]
 opt = [ "blake2/simd", "sha2/asm" ]
