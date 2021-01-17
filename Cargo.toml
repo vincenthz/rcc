@@ -10,7 +10,7 @@ edition = "2018"
 
 # cryptoxide
 # cryptoxide = "0.1"
-cryptoxide = "0.2"
+cryptoxide = "0.3"
 
 # rustcrypto
 blake2 = "0.9"

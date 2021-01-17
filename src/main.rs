@@ -34,7 +34,7 @@ pub struct BenchData {
 }
 
 impl BenchData {
-    pub fn reports(&self, name: &str) {
+    pub fn reports(&self, name: &str, package: &str) {
         let average_dur = self
             .durations
             .iter()
@@ -64,13 +64,13 @@ impl BenchData {
         let sd = (sd_n as f64 / (self.durations.len() - 1) as f64).sqrt() / 1_000_000.0;
 
         println!(
-            "{:25} | {:?} {:?} {:?} (sd={:.3} ms) cycles={} => {}/s",
-            name, min, average_dur, max, sd, average_cycles, speed_h
+            "{:10} -- {:16}  | {:?} {:?} {:?} (sd={:.3} ms) cycles={} => {}/s",
+            name, package, min, average_dur, max, sd, average_cycles, speed_h
         );
     }
 }
 
-fn benchmark_hash<C, F, G>(name: &str, tries: usize, data: &[u8], new: F, update: G)
+fn benchmark_hash<C, F, G>(name: &str, package: &str, tries: usize, data: &[u8], new: F, update: G)
 where
     F: Fn() -> C,
     G: Fn(&mut C, &[u8]) -> (),
@@ -105,7 +105,7 @@ where
         counters,
     };
 
-    bd.reports(name);
+    bd.reports(name, package);
     std::thread::sleep(std::time::Duration::from_secs(1));
 }
 
@@ -115,8 +115,8 @@ fn main() {
     let tries = 24;
 
     macro_rules! bench_hash {
-        ($name: expr, $cstr: expr, $update: expr) => {
-            benchmark_hash($name, tries, &data[..], || $cstr, $update);
+        ($name: expr, $package: expr, $cstr: expr, $update: expr) => {
+            benchmark_hash($name, $package, tries, &data[..], || $cstr, $update);
         };
     }
 
@@ -125,14 +125,14 @@ fn main() {
     // ********* BLAKE2B *******
     {
         use cryptoxide::{blake2b::Blake2b, digest::Digest};
-        bench_hash!("cryptoxide::blake2b", Blake2b::new(64), |c, d| {
+        bench_hash!("blake2b", "cryptoxide", Blake2b::new(64), |c, d| {
             c.input(d)
         });
     }
 
     {
         use blake2::{Blake2b, Digest};
-        bench_hash!("blake2::blake2b", Blake2b::new(), |c, d| { c.update(d) });
+        bench_hash!("blake2b", "blake2", Blake2b::new(), |c, d| { c.update(d) });
 
     }
     
@@ -140,46 +140,46 @@ fn main() {
     
     {
         use cryptoxide::{blake2s::Blake2s, digest::Digest};
-        bench_hash!("cryptoxide::blake2s", Blake2s::new(32), |c, d| {
+        bench_hash!("blake2s", "cryptoxide", Blake2s::new(32), |c, d| {
             c.input(d)
         });
     }
 
     {
         use blake2::{Blake2s, Digest};
-        bench_hash!("blake2::blake2s", Blake2s::new(), |c, d| { c.update(d) });
+        bench_hash!("blake2s", "blake2", Blake2s::new(), |c, d| { c.update(d) });
     }
 
     // ********* SHA256 *******
     {
         use cryptoxide::{digest::Digest, sha2::Sha256};
-        bench_hash!("cryptoxide::sha256", Sha256::new(), |c, d| { c.input(d) });
+        bench_hash!("sha256", "cryptoxide", Sha256::new(), |c, d| { c.input(d) });
     }
 
     {
         use sha2::{Digest, Sha256};
-        bench_hash!("sha2::sha256", Sha256::new(), |c, d| { c.update(d) });
+        bench_hash!("sha256", "sha2", Sha256::new(), |c, d| { c.update(d) });
     }
 
     {
         use ring::digest;
-        bench_hash!("ring::sha256", digest::Context::new(&digest::SHA256), |c, d| { c.update(d) });
+        bench_hash!("sha256", "ring", digest::Context::new(&digest::SHA256), |c, d| { c.update(d) });
     }
     
     // ********* SHA512 *******
     {
         use cryptoxide::{digest::Digest, sha2::Sha512};
-        bench_hash!("cryptoxide::sha512", Sha512::new(), |c, d| { c.input(d) });
+        bench_hash!("sha512", "cryptoxide", Sha512::new(), |c, d| { c.input(d) });
     }
 
     {
         use sha2::{Digest, Sha512};
-        bench_hash!("sha2::sha512", Sha512::new(), |c, d| { c.update(d) });
+        bench_hash!("sha512", "sha2", Sha512::new(), |c, d| { c.update(d) });
     }
 
     {
         use ring::digest;
-        bench_hash!("ring::sha512", digest::Context::new(&digest::SHA512), |c, d| { c.update(d) });
+        bench_hash!("sha512", "ring", digest::Context::new(&digest::SHA512), |c, d| { c.update(d) });
     }
 
     // ********* POLY1305 *******
@@ -187,7 +187,7 @@ fn main() {
     {
         use cryptoxide::{mac::Mac, poly1305::Poly1305};
         let key = [2u8; 32];
-        bench_hash!("cryptoxide::poly1305", Poly1305::new(&key), |c, d| {
+        bench_hash!("poly1305", "cryptoxide", Poly1305::new(&key), |c, d| {
             c.input(d)
         });
     }
