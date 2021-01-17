@@ -3,7 +3,15 @@ use cryptoxide;
 use blake2;
 use sha2;
 
+#[cfg(target_arch = "x86_64")]
 use core::arch::x86_64::__rdtscp;
+
+#[cfg(not(target_arch = "x86_64"))]
+unsafe fn __rdtscp(aux: *mut u32) -> u64 {
+   *aux = 0;
+   0
+}
+
 use std::time::{Duration, SystemTime};
 
 fn human_unit(v: u128) -> String {
@@ -86,7 +94,7 @@ where
             .duration_since(start)
             .expect("Clock may have gone backwards");
         durations.push(dur);
-        if counter_end > counter_start {
+        if counter_end >= counter_start {
             counters.push(counter_end - counter_start);
         }
     }
