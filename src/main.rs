@@ -78,7 +78,11 @@ impl BenchData {
             // "1.234xy"
             let secs = dur.as_secs();
             if secs > 1 {
-                format!("{}s ", dur.as_secs())
+                format!(
+                    "{:3}.{:02}s ",
+                    dur.as_secs(),
+                    (dur.subsec_millis() % 1000) / 10
+                )
             } else if dur.subsec_millis() > 1 {
                 let micros = (dur.subsec_micros() % 1000) / 10;
                 format!("{:3}.{:02}ms", dur.subsec_millis(), micros)
