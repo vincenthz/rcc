@@ -8,6 +8,9 @@ edition = "2018"
 
 [dependencies]
 
+# color output
+ansi_term = "0.6"
+
 # cryptoxide
 # cryptoxide = "0.1"
 cryptoxide = "0.3"
