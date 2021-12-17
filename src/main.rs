@@ -45,6 +45,13 @@ pub struct BenchData {
 }
 
 impl BenchData {
+    pub fn set_datalen(mut self, size: usize) -> Self {
+        self.datalen = Some(size);
+        self
+    }
+}
+
+impl BenchData {
     pub fn reports(&self, name: &str, package: &str) {
         let average_dur = self
             .durations
