@@ -223,6 +223,7 @@ fn main() {
     const PKG_CRYPTOXIDE: &str = "cryptoxide";
     const PKG_DALEK: &str = "dalek";
     const PKG_SHA2: &str = "sha2";
+    const PKG_CHACHA20: &str = "chacha20";
     const PKG_BLAKE2: &str = "blake2";
     const PKG_RING: &str = "ring";
 
@@ -327,6 +328,38 @@ fn main() {
                 );
             }
             */
+        });
+
+        group("chacha20", || {
+            let key: [u8; 32] = [
+                0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
+                23, 24, 25, 26, 27, 28, 29, 30, 31,
+            ];
+            let nonce: [u8; 12] = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+            let size = 10 * 1024 * 1024;
+            {
+                use cryptoxide::chacha20::ChaCha20;
+
+                let bd = benchmark(tries, || {
+                    let mut data = vec![0u8; size];
+                    let mut cipher = ChaCha20::new(&key, &nonce);
+                    cipher.process_mut(&mut data);
+                });
+                bd.set_datalen(size).reports("chacha20", PKG_CRYPTOXIDE)
+            }
+            {
+                use chacha20::cipher::{NewCipher, StreamCipher};
+                use chacha20::{ChaCha20, Key, Nonce};
+
+                let bd = benchmark(tries, || {
+                    let mut data = vec![0u8; size];
+                    let key = Key::from_slice(&key);
+                    let nonce = Nonce::from_slice(&nonce);
+                    let mut cipher = ChaCha20::new(&key, &nonce);
+                    cipher.apply_keystream(&mut data);
+                });
+                bd.set_datalen(size).reports("chacha20", PKG_CHACHA20)
+            }
         });
 
         group("curve25519", || {
