@@ -199,14 +199,30 @@ where
     std::thread::sleep(std::time::Duration::from_secs(1));
 }
 
-fn group<F>(_group_name: &str, f: F)
+struct ExecuteParams {
+    repeat: usize,
+    selector: Option<String>,
+}
+
+fn group<F>(execute_params: &ExecuteParams, group_name: &str, f: F)
 where
     F: FnOnce() -> (),
 {
-    f()
+    match &execute_params.selector {
+        None => f(),
+        Some(n) if n == group_name => f(),
+        Some(_) => (),
+    }
 }
 
 fn main() {
+    let args: Vec<String> = std::env::args().collect();
+    let sel = if args.len() <= 1 {
+        None
+    } else {
+        Some(args[1].clone())
+    };
+
     let data = vec![0u8; 10 * 1024 * 1024];
 
     let tries = 24;
@@ -217,7 +233,10 @@ fn main() {
         };
     }
 
-    let repeat = 3;
+    let e = ExecuteParams {
+        repeat: 3,
+        selector: sel,
+    };
 
     // packages we bench
     const PKG_CRYPTOXIDE: &str = "cryptoxide";
@@ -227,8 +246,8 @@ fn main() {
     const PKG_BLAKE2: &str = "blake2";
     const PKG_RING: &str = "ring";
 
-    for _ in 0..repeat {
-        group("blake2b", || {
+    for _ in 0..e.repeat {
+        group(&e, "blake2b", || {
             {
                 use cryptoxide::{blake2b::Blake2b, digest::Digest};
                 bench_hash!("blake2b", PKG_CRYPTOXIDE, Blake2b::new(64), |c, d| {
@@ -244,7 +263,7 @@ fn main() {
             }
         });
 
-        group("blake2s", || {
+        group(&e, "blake2s", || {
             {
                 use cryptoxide::{blake2s::Blake2s, digest::Digest};
                 bench_hash!("blake2s", PKG_CRYPTOXIDE, Blake2s::new(32), |c, d| {
@@ -260,7 +279,7 @@ fn main() {
             }
         });
 
-        group("sha256", || {
+        group(&e, "sha256", || {
             {
                 use cryptoxide::{digest::Digest, sha2::Sha256};
                 bench_hash!("sha256", PKG_CRYPTOXIDE, Sha256::new(), |c, d| {
@@ -284,7 +303,7 @@ fn main() {
             }
         });
 
-        group("sha512", || {
+        group(&e, "sha512", || {
             {
                 use cryptoxide::{digest::Digest, sha2::Sha512};
                 bench_hash!("sha512", PKG_CRYPTOXIDE, Sha512::new(), |c, d| {
@@ -308,7 +327,7 @@ fn main() {
             }
         });
 
-        group("poly1305", || {
+        group(&e, "poly1305", || {
             {
                 use cryptoxide::{mac::Mac, poly1305::Poly1305};
                 let key = [2u8; 32];
@@ -330,7 +349,7 @@ fn main() {
             */
         });
 
-        group("chacha20", || {
+        group(&e, "chacha20", || {
             let key: [u8; 32] = [
                 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
                 23, 24, 25, 26, 27, 28, 29, 30, 31,
@@ -362,7 +381,7 @@ fn main() {
             }
         });
 
-        group("curve25519", || {
+        group(&e, "curve25519", || {
             {
                 use cryptoxide::curve25519::curve25519_base;
 
