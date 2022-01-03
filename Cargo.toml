@@ -13,22 +13,33 @@ ansi_term = "0.6"
 
 # cryptoxide
 # cryptoxide = "0.1"
-cryptoxide = "0.3"
+#cryptoxide = "0.3"
+cryptoxide = { path = "../cryptoxide" }
 
 # rustcrypto
-blake2 = "0.9"
-sha2 = "0.9"
-digest = "0.9"
+blake2 = "0.10"
+sha2 = "0.10"
+sha3 = "0.10"
+digest = "0.10"
 poly1305 = "0.6"
 universal-hash = "0.4"
 chacha20 = "0.8"
 
 # dalek stuff
-curve25519-dalek = "3"
-x25519-dalek = "1.2"
+curve25519-dalek = { version = "3" }
+ed25519-dalek = { version = "1" }
+x25519-dalek = { version = "1.2" }
+
+#curve25519-dalek = { version = "3", default-features = false }
+#ed25519-dalek = { version = "1", default-features = false }
+#x25519-dalek = { version = "1.2", default-features = false }
 
 # ring
 ring = "0.16"
 
 [features]
+default = []
 opt = [ "blake2/simd", "sha2/asm" ]
+force32bits = ["cryptoxide/force-32bits"]
+
+#force32bits = ["cryptoxide/force-32bits", "curve25519-dalek/u32_backend", "x25519-dalek/u32_backend", "ed25519-dalek/u32_backend"]

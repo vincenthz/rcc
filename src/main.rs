@@ -109,7 +109,7 @@ impl BenchData {
         }
 
         println!(
-            "{:10} -- {:16}  [ {} .. ~{} .. {} ]   {}={} {} ; {}={} {}",
+            "{:16} -- {:16}  [ {} .. ~{} .. {} ]   {}={} {} ; {}={} {}",
             name,
             package,
             Yellow.paint(&print_dur(*min)),
@@ -210,7 +210,7 @@ where
 {
     match &execute_params.selector {
         None => f(),
-        Some(n) if n == group_name => f(),
+        Some(n) if n == group_name || group_name.starts_with(n) => f(),
         Some(_) => (),
     }
 }
@@ -242,6 +242,7 @@ fn main() {
     const PKG_CRYPTOXIDE: &str = "cryptoxide";
     const PKG_DALEK: &str = "dalek";
     const PKG_SHA2: &str = "sha2";
+    const PKG_SHA3: &str = "sha3";
     const PKG_CHACHA20: &str = "chacha20";
     const PKG_BLAKE2: &str = "blake2";
     const PKG_RING: &str = "ring";
@@ -256,8 +257,8 @@ fn main() {
             }
 
             {
-                use blake2::{Blake2b, Digest};
-                bench_hash!("blake2b", PKG_BLAKE2, Blake2b::new(), |c, d| {
+                use blake2::{Blake2b512, Digest};
+                bench_hash!("blake2b", PKG_BLAKE2, Blake2b512::new(), |c, d| {
                     c.update(d)
                 });
             }
@@ -272,8 +273,8 @@ fn main() {
             }
 
             {
-                use blake2::{Blake2s, Digest};
-                bench_hash!("blake2s", PKG_BLAKE2, Blake2s::new(), |c, d| {
+                use blake2::{Blake2s256, Digest};
+                bench_hash!("blake2s", PKG_BLAKE2, Blake2s256::new(), |c, d| {
                     c.update(d)
                 });
             }
@@ -324,6 +325,22 @@ fn main() {
                     digest::Context::new(&digest::SHA512),
                     |c, d| { c.update(d) }
                 );
+            }
+        });
+
+        group(&e, "sha3-256", || {
+            {
+                use cryptoxide::{digest::Digest, sha3::Sha3_256};
+                bench_hash!("sha3-256", PKG_CRYPTOXIDE, Sha3_256::new(), |c, d| {
+                    c.input(d)
+                });
+            }
+
+            {
+                use sha3::{Digest, Sha3_256};
+                bench_hash!("sha3-256", PKG_SHA3, Sha3_256::new(), |c, d| {
+                    c.update(d)
+                });
             }
         });
 
@@ -381,7 +398,7 @@ fn main() {
             }
         });
 
-        group(&e, "curve25519", || {
+        group(&e, "x25519::base", || {
             {
                 use cryptoxide::curve25519::curve25519_base;
 
@@ -389,7 +406,7 @@ fn main() {
                     let _out = curve25519_base(&[1; 32]);
                     ()
                 });
-                bd.reports("curve25519", PKG_CRYPTOXIDE)
+                bd.reports("x25519::base", PKG_CRYPTOXIDE)
             }
             {
                 use x25519_dalek::{x25519, X25519_BASEPOINT_BYTES};
@@ -398,9 +415,92 @@ fn main() {
                     let _out = x25519([1; 32], X25519_BASEPOINT_BYTES);
                     ()
                 });
-                bd.reports("curve25519", PKG_DALEK)
+                bd.reports("x25519::base", PKG_DALEK)
             }
         });
+
+        group(&e, "x25519::dh", || {
+            {
+                use cryptoxide::curve25519::curve25519;
+
+                let bd = benchmark(tries, || {
+                    let _out = curve25519(&[1; 32], &[2; 32]);
+                    ()
+                });
+                bd.reports("x25519::dh", PKG_CRYPTOXIDE)
+            }
+            {
+                use x25519_dalek::x25519;
+
+                let bd = benchmark(tries, || {
+                    let _out = x25519([1; 32], [2; 32]);
+                    ()
+                });
+                bd.reports("x25519::dh", PKG_DALEK)
+            }
+        });
+
+        group(&e, "ed25519::sign", || {
+            let message = "messages".as_bytes();
+            let secret_bytes = [1u8; 32];
+
+            {
+                use cryptoxide::ed25519;
+
+                let (secret, _) = ed25519::keypair(&secret_bytes);
+                let bd = benchmark(tries, || {
+                    let _signature = ed25519::signature(message, &secret);
+                    ()
+                });
+                bd.reports("ed25519::sign", PKG_CRYPTOXIDE)
+            }
+            {
+                use ed25519_dalek::{Keypair, PublicKey, SecretKey, Signature, Signer};
+
+                let secret = SecretKey::from_bytes(&secret_bytes).unwrap();
+                let public: PublicKey = (&secret).into();
+                let keypair: Keypair = Keypair { secret, public };
+
+                let bd = benchmark(tries, || {
+                    let signature: Signature = keypair.sign(message);
+                    let _ = signature.to_bytes();
+                    ()
+                });
+                bd.reports("ed25519::sign", PKG_DALEK)
+            }
+        });
+
+        group(&e, "ed25519::verify", || {
+            let message = "messages".as_bytes();
+            let secret_bytes = [1u8; 32];
+
+            {
+                use cryptoxide::ed25519;
+
+                let (secret, public) = ed25519::keypair(&secret_bytes);
+                let signature = ed25519::signature(message, &secret);
+                let bd = benchmark(tries, || {
+                    let _: bool = ed25519::verify(message, &public, &signature);
+                    ()
+                });
+                bd.reports("ed25519::verify", PKG_CRYPTOXIDE)
+            }
+            {
+                use ed25519_dalek::{Keypair, PublicKey, SecretKey, Signature, Signer, Verifier};
+
+                let secret = SecretKey::from_bytes(&secret_bytes).unwrap();
+                let public: PublicKey = (&secret).into();
+                let keypair: Keypair = Keypair { secret, public };
+                let signature: Signature = keypair.sign(message);
+
+                let bd = benchmark(tries, || {
+                    let _ = public.verify(message, &signature);
+                    ()
+                });
+                bd.reports("ed25519::verify", PKG_DALEK)
+            }
+        });
+
         println!("")
     }
 }
