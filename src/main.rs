@@ -59,13 +59,9 @@ impl BenchData {
             .sum::<Duration>()
             .checked_div(self.tries as u32)
             .expect("cannot div");
-        let average_cycles = self
-            .counters
-            .iter()
-            .sum::<u64>()
+        let all_cycles = self.counters.iter().sum::<u64>();
+        let average_cycles = all_cycles
             .checked_div(self.counters.len() as u64)
-            .expect("cannot div")
-            .checked_div(self.tries as u64)
             .expect("cannot div");
 
         let speed_string = match self.datalen {
@@ -225,7 +221,7 @@ fn main() {
 
     let data = vec![0u8; 10 * 1024 * 1024];
 
-    let tries = 24;
+    let tries = 16;
 
     macro_rules! bench_hash {
         ($name: expr, $package: expr, $cstr: expr, $update: expr) => {
@@ -241,6 +237,7 @@ fn main() {
     // packages we bench
     const PKG_CRYPTOXIDE: &str = "cryptoxide";
     const PKG_DALEK: &str = "dalek";
+    const PKG_SHA1: &str = "sha1";
     const PKG_SHA2: &str = "sha2";
     const PKG_SHA3: &str = "sha3";
     const PKG_CHACHA20: &str = "chacha20";
@@ -250,9 +247,9 @@ fn main() {
     for _ in 0..e.repeat {
         group(&e, "blake2b", || {
             {
-                use cryptoxide::{blake2b::Blake2b, digest::Digest};
-                bench_hash!("blake2b", PKG_CRYPTOXIDE, Blake2b::new(64), |c, d| {
-                    c.input(d)
+                use cryptoxide::hashing::blake2b::Blake2b;
+                bench_hash!("blake2b", PKG_CRYPTOXIDE, Blake2b::<512>::new(), |c, d| {
+                    c.update_mut(d)
                 });
             }
 
@@ -266,9 +263,9 @@ fn main() {
 
         group(&e, "blake2s", || {
             {
-                use cryptoxide::{blake2s::Blake2s, digest::Digest};
-                bench_hash!("blake2s", PKG_CRYPTOXIDE, Blake2s::new(32), |c, d| {
-                    c.input(d)
+                use cryptoxide::hashing::blake2s::Blake2s;
+                bench_hash!("blake2s", PKG_CRYPTOXIDE, Blake2s::<256>::new(), |c, d| {
+                    c.update_mut(d)
                 });
             }
 
@@ -280,11 +277,25 @@ fn main() {
             }
         });
 
+        group(&e, "sha1", || {
+            {
+                use cryptoxide::hashing::sha1::Sha1;
+                bench_hash!("sha1", PKG_CRYPTOXIDE, Sha1::new(), |c, d| {
+                    c.update_mut(d)
+                });
+            }
+
+            {
+                use sha1::Sha1;
+                bench_hash!("sha1", PKG_SHA1, Sha1::new(), |c, d| { c.update(d) });
+            }
+        });
+
         group(&e, "sha256", || {
             {
-                use cryptoxide::{digest::Digest, sha2::Sha256};
+                use cryptoxide::hashing::sha2::Sha256;
                 bench_hash!("sha256", PKG_CRYPTOXIDE, Sha256::new(), |c, d| {
-                    c.input(d)
+                    c.update_mut(d)
                 });
             }
 
@@ -306,9 +317,9 @@ fn main() {
 
         group(&e, "sha512", || {
             {
-                use cryptoxide::{digest::Digest, sha2::Sha512};
+                use cryptoxide::hashing::sha2::Sha512;
                 bench_hash!("sha512", PKG_CRYPTOXIDE, Sha512::new(), |c, d| {
-                    c.input(d)
+                    c.update_mut(d)
                 });
             }
 
@@ -330,9 +341,9 @@ fn main() {
 
         group(&e, "sha3-256", || {
             {
-                use cryptoxide::{digest::Digest, sha3::Sha3_256};
+                use cryptoxide::hashing::sha3::Sha3_256;
                 bench_hash!("sha3-256", PKG_CRYPTOXIDE, Sha3_256::new(), |c, d| {
-                    c.input(d)
+                    c.update_mut(d)
                 });
             }
 
