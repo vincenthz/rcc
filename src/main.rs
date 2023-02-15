@@ -60,9 +60,12 @@ impl BenchData {
             .checked_div(self.tries as u32)
             .expect("cannot div");
         let all_cycles = self.counters.iter().sum::<u64>();
-        let average_cycles = all_cycles
-            .checked_div(self.counters.len() as u64)
-            .expect("cannot div");
+        let average_cycles = if self.counters.len() > 0 {
+            all_cycles.checked_div(self.counters.len() as u64)
+                .expect("cannot div")
+        } else {
+            0
+        };
 
         let speed_string = match self.datalen {
             None => String::new(),
@@ -128,6 +131,9 @@ where
     let mut durations = Vec::with_capacity(tries);
     let mut counters = Vec::with_capacity(tries);
 
+    /* prep cpu/memory with one unmeasured call to f... */
+    f();
+
     for _ in 0..tries {
         let mut aux = 0u32;
         let start = SystemTime::now();
@@ -154,6 +160,23 @@ where
     bd
 }
 
+#[inline]
+fn with_measurement<F>(f: F) -> (std::time::Duration, u64)
+where
+    F: FnOnce() -> (),
+{
+    let mut aux = 0u32;
+    let start = SystemTime::now();
+    let counter_start = counter(&mut aux);
+    f();
+    let counter_end = counter(&mut aux);
+    let end = SystemTime::now();
+    let dur = end
+        .duration_since(start)
+        .expect("Clock may have gone backwards");
+    (dur, counter_end.saturating_sub(counter_start))
+}
+
 fn benchmark_hash<C, F, G>(name: &str, package: &str, tries: usize, data: &[u8], new: F, update: G)
 where
     F: Fn() -> C,
@@ -168,18 +191,12 @@ where
 
     for _ in 0..tries {
         let mut sh = new();
-        let mut aux = 0u32;
-        let start = SystemTime::now();
-        let counter_start = counter(&mut aux);
-        update(&mut sh, data);
-        let counter_end = counter(&mut aux);
-        let end = SystemTime::now();
-        let dur = end
-            .duration_since(start)
-            .expect("Clock may have gone backwards");
+        let (dur, counter) = with_measurement(|| {
+            update(&mut sh, data);
+        });
         durations.push(dur);
-        if counter_end >= counter_start {
-            counters.push(counter_end - counter_start);
+        if counter > 0 {
+            counters.push(counter);
         }
     }
     let bd = BenchData {
@@ -193,6 +210,14 @@ where
 
     // cool down time
     std::thread::sleep(std::time::Duration::from_secs(1));
+}
+
+fn benchmark_kdf<F>(name: &str, package: &str, tries: usize, kdf: F)
+where
+    F: Fn() -> (),
+{
+    let bd = benchmark(tries, kdf);
+    bd.reports(name, package);
 }
 
 struct ExecuteParams {
@@ -240,6 +265,7 @@ fn main() {
     const PKG_SHA1: &str = "sha1";
     const PKG_SHA2: &str = "sha2";
     const PKG_SHA3: &str = "sha3";
+    const PKG_ARGON2: &str = "argon2";
     const PKG_CHACHA20: &str = "chacha20";
     const PKG_BLAKE2: &str = "blake2";
     const PKG_RING: &str = "ring";
@@ -351,6 +377,45 @@ fn main() {
                 use sha3::{Digest, Sha3_256};
                 bench_hash!("sha3-256", PKG_SHA3, Sha3_256::new(), |c, d| {
                     c.update(d)
+                });
+            }
+        });
+
+        group(&e, "argon2", || {
+            const ARGON_SALT: &[u8] = b"saltsaltsaltsalt";
+            const ARGON_PASSWORD: &[u8] = b"password";
+            const ARGON_TRIES: usize = 50;
+
+            const ARGON_EXPECT: &[u8] = &[
+                220, 38, 26, 14, 138, 27, 21, 170, 107, 15, 77, 135, 76, 197, 85, 68, 187, 43, 74,
+                2, 99, 100, 174, 80, 154, 166, 22, 157, 96, 196, 2, 92,
+            ];
+            {
+                use cryptoxide::kdf::argon2;
+
+                benchmark_kdf("argon2d", PKG_CRYPTOXIDE, ARGON_TRIES, || {
+                    let params = argon2::Params::argon2d()
+                        .memory_kb(4096)
+                        .unwrap()
+                        .parallelism(1)
+                        .unwrap()
+                        .iterations(3)
+                        .unwrap();
+                    let out = argon2::argon2::<32>(&params, ARGON_PASSWORD, ARGON_SALT, &[], &[]);
+                    assert_eq!(out, ARGON_EXPECT);
+                });
+            }
+
+            {
+                benchmark_kdf("argon2d", PKG_ARGON2, ARGON_TRIES, || {
+                    let mut config = argon2::Config::default();
+                    config.mem_cost = 4096;
+                    config.lanes = 1;
+                    config.time_cost = 3;
+                    config.hash_length = 32;
+                    config.variant = argon2::Variant::Argon2d;
+                    let out = argon2::hash_raw(ARGON_PASSWORD, ARGON_SALT, &config).unwrap();
+                    assert_eq!(out, ARGON_EXPECT);
                 });
             }
         });

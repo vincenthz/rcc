@@ -13,8 +13,7 @@ ansi_term = "0.6"
 
 # cryptoxide
 # cryptoxide = "0.1"
-#cryptoxide = "0.3"
-cryptoxide = { path = "../cryptoxide" }
+cryptoxide = { path = "../cryptoxide", version = "0.4" }
 
 # rustcrypto
 blake2 = "0.10"
@@ -25,6 +24,8 @@ digest = "0.10"
 poly1305 = "0.6"
 universal-hash = "0.4"
 chacha20 = "0.8"
+
+rust-argon2 = "1.0"
 
 # dalek stuff
 curve25519-dalek = { version = "3" }
