@@ -10,10 +10,11 @@ edition = "2018"
 
 # color output
 ansi_term = "0.6"
+clap = { version = "4", features = ["derive"] }
 
 # cryptoxide
-# cryptoxide = "0.1"
-cryptoxide = { path = "../cryptoxide", version = "0.4" }
+# cryptoxide = "0.4"
+cryptoxide = { path = "../cryptoxide", version = "^0.4.3" }
 
 # rustcrypto
 blake2 = "0.10"
@@ -21,16 +22,17 @@ sha1 = "0.6"
 sha2 = "0.10"
 sha3 = "0.10"
 digest = "0.10"
-poly1305 = "0.6"
-universal-hash = "0.4"
-chacha20 = "0.8"
+poly1305 = "0.8"
+universal-hash = "0.5"
+chacha20 = "0.9"
+chacha20poly1305 = "0.10"
 
 rust-argon2 = "1.0"
 
 # dalek stuff
 curve25519-dalek = { version = "3" }
 ed25519-dalek = { version = "1" }
-x25519-dalek = { version = "1.2" }
+x25519-dalek = { version = "2.0.0-pre.1" }
 
 #curve25519-dalek = { version = "3", default-features = false }
 #ed25519-dalek = { version = "1", default-features = false }
