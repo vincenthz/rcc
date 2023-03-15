@@ -25,6 +25,7 @@ digest = "0.10"
 poly1305 = "0.8"
 universal-hash = "0.5"
 chacha20 = "0.9"
+salsa20 = "0.10"
 chacha20poly1305 = "0.10"
 
 rust-argon2 = "1.0"

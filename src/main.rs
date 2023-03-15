@@ -53,6 +53,7 @@ fn main() {
     const PKG_SHA2: &str = "sha2";
     const PKG_SHA3: &str = "sha3";
     const PKG_ARGON2: &str = "argon2";
+    const PKG_SALSA20: &str = "salsa20";
     const PKG_CHACHA20: &str = "chacha20";
     const PKG_CHACHA20POLY1305: &str = "chacha20poly1305";
     const PKG_BLAKE2: &str = "blake2";
@@ -228,6 +229,38 @@ fn main() {
                 );
             }
             */
+        });
+
+        group(&e, "salsa20", || {
+            let key: [u8; 32] = [
+                0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22,
+                23, 24, 25, 26, 27, 28, 29, 30, 31,
+            ];
+            let nonce: [u8; 8] = [1, 2, 3, 4, 5, 6, 7, 8];
+            let size = 10 * 1024 * 1024;
+            {
+                use cryptoxide::salsa20::Salsa20;
+
+                let bd = benchmark(tries, || {
+                    let mut data = vec![0u8; size];
+                    let mut cipher = Salsa20::new(&key, &nonce);
+                    cipher.process_mut(&mut data);
+                });
+                bd.set_datalen(size).reports("salsa20", PKG_CRYPTOXIDE)
+            }
+            {
+                use salsa20::cipher::{KeyIvInit, StreamCipher};
+                use salsa20::{Key, Nonce, Salsa20};
+
+                let bd = benchmark(tries, || {
+                    let mut data = vec![0u8; size];
+                    let key = Key::from_slice(&key);
+                    let nonce = Nonce::from_slice(&nonce);
+                    let mut cipher = Salsa20::new(&key, &nonce);
+                    cipher.apply_keystream(&mut data);
+                });
+                bd.set_datalen(size).reports("salsa20", PKG_SALSA20)
+            }
         });
 
         group(&e, "chacha20", || {
