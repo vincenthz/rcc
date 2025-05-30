@@ -13,8 +13,8 @@ ansi_term = "0.6"
 clap = { version = "4", features = ["derive"] }
 
 # cryptoxide
-# cryptoxide = "0.4"
-cryptoxide = { path = "../cryptoxide", version = "^0.4.3" }
+# cryptoxide = "0.5"
+cryptoxide = { path = "../cryptoxide", version = "^0.5" }
 
 # rustcrypto
 blake2 = "0.10"
